@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quant & Speculative Decoding Benchmarking Engine</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --orange: #f0883e;
+    --purple: #bc8cff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+  header.top {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;
+  }
+  .logo { display: flex; align-items: center; gap: .6rem; font-weight: 700; letter-spacing: .2px; }
+  .logo .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); }
+  .badges { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .badge {
+    font-size: .72rem; padding: .25rem .6rem; border: 1px solid var(--border);
+    border-radius: 999px; color: var(--muted); background: var(--panel);
+  }
+  .badge.live { color: var(--green); border-color: rgba(63,185,80,.4); }
+  .hero { padding: 3.5rem 0 2rem; text-align: center; }
+  .hero h1 { font-size: clamp(1.8rem, 4vw, 2.7rem); font-weight: 800; letter-spacing: -.5px; }
+  .hero h1 span { color: var(--accent); }
+  .hero p { color: var(--muted); max-width: 640px; margin: 1rem auto 0; font-size: 1.02rem; }
+  .stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem; margin: 2.5rem 0;
+  }
+  .stat {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 1.1rem 1.2rem; transition: transform .15s ease, border-color .15s ease;
+  }
+  .stat:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .stat .k { color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .8px; }
+  .stat .v { font-size: 1.5rem; font-weight: 700; margin-top: .25rem; }
+  .stat .v small { font-size: .85rem; color: var(--muted); font-weight: 400; }
+  section { margin: 2.5rem 0; }
+  h2 { font-size: 1.25rem; margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+  h2::before { content: ""; width: 4px; height: 18px; background: var(--accent); border-radius: 2px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 1.25rem; overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th {
+    text-align: left; color: var(--muted); font-weight: 600; font-size: .78rem;
+    text-transform: uppercase; letter-spacing: .6px; padding: .55rem .6rem;
+    border-bottom: 1px solid var(--border);
+  }
+  td { padding: .55rem .6rem; border-bottom: 1px solid rgba(48,54,61,.5); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(88,166,255,.05); }
+  .pill {
+    display: inline-block; padding: .12rem .5rem; border-radius: 999px;
+    font-size: .75rem; font-weight: 600;
+  }
+  .pill.fp16 { background: rgba(88,166,255,.15); color: #79b8ff; }
+  .pill.fp8 { background: rgba(63,185,80,.15); color: #56d364; }
+  .pill.awq { background: rgba(240,136,62,.15); color: #f7a55c; }
+  .pill.gptq { background: rgba(188,140,255,.15); color: #d2a8ff; }
+  .ok { color: var(--green); }
+  .chart img { width: 100%; border-radius: 10px; border: 1px solid var(--border); }
+  .links { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .8rem; }
+  .links a {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); text-decoration: none; padding: .9rem 1rem;
+    font-size: .92rem; transition: border-color .15s ease, transform .15s ease;
+  }
+  .links a:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .links a .arr { color: var(--accent); }
+  .muted { color: var(--muted); }
+  footer { margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--border); color: var(--muted); font-size: .82rem; text-align: center; }
+  .loading { color: var(--muted); text-align: center; padding: 2rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="logo"><span class="dot"></span> Quant·Spec Bench Engine</div>
+    <div class="badges">
+      <span class="badge" id="mode-badge">mode: —</span>
+      <span class="badge" id="seed-badge">seed: —</span>
+      <span class="badge" id="meta-badge">metrics: loading…</span>
+    </div>
+  </header>
+
+  <div class="hero">
+    <h1>Quantization &amp; Speculative Decoding<br /><span>Benchmarking Engine</span></h1>
+    <p>Automated pipeline that measures FP16 / FP8 / AWQ / GPTQ quantization and
+      draft/target speculative decoding — then computes the Pareto Efficiency
+      Frontier so you never ship a dominated configuration.</p>
+  </div>
+
+  <div class="stats" id="stats">
+    <div class="loading">loading metrics…</div>
+  </div>
+
+  <section>
+    <h2>Quantization matrix</h2>
+    <div class="card"><table>
+      <thead>
+        <tr><th>Method</th><th>Bits</th><th>Throughput</th><th>Memory</th><th>Latency (ms/tok)</th><th>ΔPPL vs FP16</th></tr>
+      </thead>
+      <tbody id="quant-body"><tr><td colspan="6" class="loading">loading…</td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>Speculative decoding — best speedup per strategy</h2>
+    <div class="card"><table>
+      <thead>
+        <tr><th>Strategy</th><th>Draft → Target</th><th>γ</th><th>Domain</th><th>Throughput</th><th>Acceptance</th><th>Speedup</th></tr>
+      </thead>
+      <tbody id="spec-body"><tr><td colspan="7" class="loading">loading…</td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>Pareto efficiency frontier</h2>
+    <div class="card chart">
+      <img src="../artifacts/pareto_frontier.png" alt="Pareto efficiency frontier chart" />
+    </div>
+  </section>
+
+  <section>
+    <h2>Artifacts &amp; docs</h2>
+    <div class="links">
+      <a href="../README.md">README <span class="arr">→</span></a>
+      <a href="../GITMORE.md">GITMORE (dev log) <span class="arr">→</span></a>
+      <a href="../artifacts/technical_writeup.md">Technical writeup <span class="arr">→</span></a>
+      <a href="../artifacts/raw_metrics.json">Raw metrics (JSON) <span class="arr">→</span></a>
+      <a href="../Quant_Benchmarking_Readme.pdf">README PDF <span class="arr">→</span></a>
+      <a href="../Quant_Benchmarking_Setup_Guide.pdf">Setup guide PDF <span class="arr">→</span></a>
+    </div>
+  </section>
+
+  <footer>
+    Generated by <code>orchestrator/pipeline.py</code> · Company Brain in <code>brain/</code> ·
+    Eval-loop gated · Simulated metrics are seeded &amp; reproducible
+  </footer>
+</div>
+
+<script>
+const fmt = (v, u = "") => (v === null || v === undefined || v === "" ? "—" : Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 }) + (u ? " " + u : ""));
+
+async function load() {
+  try {
+    const res = await fetch("../artifacts/raw_metrics.json");
+    if (!res.ok) throw new Error("metrics not found yet");
+    const data = await res.json();
+    render(data);
+  } catch (err) {
+    document.getElementById("meta-badge").textContent = "metrics: unavailable";
+    const stats = document.getElementById("stats");
+    stats.innerHTML = '<div class="stat"><div class="k">status</div><div class="v">' + err.message + '</div></div>';
+  }
+}
+
+function pill(method) {
+  const cls = (method || "").toLowerCase();
+  const map = { fp16: "fp16", fp8: "fp8", awq: "awq", gptq: "gptq" };
+  const c = map[cls] || "fp16";
+  return `<span class="pill ${c}">${method}</span>`;
+}
+
+function render(data) {
+  document.getElementById("mode-badge").textContent = "mode: " + data.mode;
+  document.getElementById("seed-badge").textContent = "seed: " + data.seed;
+  document.getElementById("meta-badge").textContent =
+    data.quantization.length + " quant configs · " + data.speculative.length + " spec rows";
+
+  const quant = data.quantization;
+  const best = [...quant].sort((a, b) => b.tokens_per_sec - a.tokens_per_sec)[0];
+  const lightest = [...quant].sort((a, b) => a.mem_gb - b.mem_gb)[0];
+  const basePpl = Math.min(...quant.map((r) => r.quality_ppl));
+  const speed = data.speculative
+    .filter((r) => r.speedup_vs_baseline != null)
+    .sort((a, b) => b.speedup_vs_baseline - a.speedup_vs_baseline)[0];
+
+  document.getElementById("stats").innerHTML =
+    stat("Configs tested", quant.length) +
+    stat("Throughput leader", best.method, best.tokens_per_sec.toFixed(1) + " tok/s") +
+    stat("Lightest footprint", lightest.method, lightest.mem_gb.toFixed(1) + " GB") +
+    stat("Best spec speedup", speed ? speed.method + " ×" + speed.speedup_vs_baseline.toFixed(2) : "—");
+
+  document.getElementById("quant-body").innerHTML = [...quant]
+    .sort((a, b) => b.tokens_per_sec - a.tokens_per_sec)
+    .map((r) =>
+      "<tr><td>" + pill(r.method) + "</td><td>" + r.bits + "</td><td><b>" + r.tokens_per_sec.toFixed(1) + "</b> tok/s</td>" +
+      "<td>" + r.mem_gb.toFixed(1) + " GB</td><td>" + (r.latency_ms_mean ?? "—") + "</td>" +
+      "<td class='ok'>+" + (r.quality_ppl - basePpl).toFixed(2) + "</td></tr>"
+    ).join("");
+
+  const byKey = {};
+  data.speculative.forEach((r) => {
+    const key = r.method + "|" + (r.draft || "baseline");
+    if (!byKey[key] || r.speedup_vs_baseline > byKey[key].speedup_vs_baseline) byKey[key] = r;
+  });
+  document.getElementById("spec-body").innerHTML = Object.values(byKey)
+    .map((r) =>
+      "<tr><td>" + pill(r.method) + "</td><td>" + (r.draft || "—") + " → " + r.target + "</td><td>" + r.gamma + "</td>" +
+      "<td>" + r.domain + "</td><td>" + r.tokens_per_sec.toFixed(1) + " tok/s</td>" +
+      "<td>" + (r.acceptance_rate != null ? (r.acceptance_rate * 100).toFixed(0) + "%" : "—") + "</td>" +
+      "<td class='ok'><b>×" + r.speedup_vs_baseline.toFixed(2) + "</b></td></tr>"
+    ).join("");
+}
+
+function stat(k, v, sub) {
+  return '<div class="stat"><div class="k">' + k + '</div><div class="v">' + v + (sub ? " <small>" + sub + "</small>" : "") + "</div></div>";
+}
+
+load();
+</script>
+</body>
+</html>

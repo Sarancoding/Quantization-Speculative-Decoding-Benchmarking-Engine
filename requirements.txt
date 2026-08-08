@@ -1,0 +1,6 @@
+# Pinned, reproducible requirements for the analysis/CI stack.
+# These run headless on CPU: metrics math, Pareto chart, PDF generation.
+# For LIVE GPU benchmark runs see requirements-live.txt (optional).
+numpy==1.26.4
+matplotlib==3.8.4
+fpdf2==2.7.9

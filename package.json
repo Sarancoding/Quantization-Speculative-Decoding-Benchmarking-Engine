@@ -1,0 +1,16 @@
+{
+  "name": "quant-spec-benchmark-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Automated benchmarking engine for LLM quantization (FP16/FP8/AWQ/GPTQ) and speculative decoding, producing Pareto efficiency frontiers and technical writeups.",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "bun server.js",
+    "start": "bun server.js",
+    "build": "bun scripts/build.mjs",
+    "pipeline": "python3 -m orchestrator.pipeline --mode simulate"
+  }
+}
