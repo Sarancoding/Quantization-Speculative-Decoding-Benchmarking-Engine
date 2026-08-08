@@ -4,6 +4,16 @@
 > fails or a non-obvious decision is made, then reference the entry from the
 > task board.
 
+## 2026-08-08 — Push auth: git had no credential helper wired
+- **Failure:** `git push` prompted for a username because no `credential.helper`
+  was configured, even though Freebuff had injected the repo-scoped GitHub App
+  token (available to `gh` as `freebuff-web[bot]`).
+- **Fix:** `push_to_github.sh` now retries a plain push with
+  `git -c credential.helper='!gh auth git-credential' push ...` — the injected
+  token is used, nothing is persisted, the remote is not rewritten.
+- **Lesson:** on Freebuff workspaces, wire `gh auth git-credential` as the
+  helper instead of expecting git to find the token by itself.
+
 ## 2026-08-08 — Eval Loop ordering bug (caught by the loop itself)
 - **Failure:** First pipeline run failed its own gate: the taste gate ran
   before Phase 5 generated the artifacts, so `artifacts/pareto_frontier.png`

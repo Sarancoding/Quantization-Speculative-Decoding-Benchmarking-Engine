@@ -20,3 +20,5 @@
 - Scripts invoked as `sh ...` must be POSIX-compatible (no `pipefail`).
 - **Lesson:** the gated checklist worked — every issue was caught before the
   push, not after.
+- Push auth: `git push` needs a credential helper; on Freebuff workspaces use
+  `gh auth git-credential` (the injected repo-scoped token authenticates).

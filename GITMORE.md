@@ -54,6 +54,9 @@
 - **Post-push verified** — landing files present on the default branch.
 
 ### Friction & fixes (logged in `tasks/lessons.md`)
+- Push auth: git had no credential helper, so the first push prompted for a
+  username. Fixed by retrying with `gh auth git-credential` as a one-shot
+  helper (uses the injected Freebuff token; nothing persisted).
 - Committed provenance recorded absolute `cwd` → now stored as `"<repo_root>"`.
 - Lessons log contained absolute paths → eval loop now logs relative paths.
 - Pre-push secret scan tripped on `.venv/` deps and on the script's own
